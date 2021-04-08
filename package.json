@@ -1,7 +1,7 @@
 {
   "name": "node-server",
   "version": "1.0.0",
-  "description": "SPSF-spsf",
+  "description": "SPSF-spsf_service",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ruwanganath/spsf.git"
+    "url": "git+https://github.com/ruwanganath/spsf_service.git"
   },
   "author": "Ruwangnath Ramanayake",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ruwanganath/spsf/issues"
+    "url": "https://github.com/ruwanganath/spsf_service/issues"
   },
-  "homepage": "https://github.com/ruwanganath/spsf#readme",
+  "homepage": "https://github.com/ruwanganath/spsf_service#readme",
   "dependencies": {
     "express": "^4.17.1",
     "materialize-css": "^1.0.0-rc.2",

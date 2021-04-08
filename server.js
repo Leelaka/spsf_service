@@ -1,12 +1,12 @@
 var express = require('express'),
     app = express();
 
-var port = process.env.PORT || 3000;   
+var port = process.env.PORT || 8080;   
 
 app.use(express.static(__dirname +'/public'));
 
 app.get('/',function(req,res){
-    res.send('Hello world-spsf')
+    res.send('spsf_service')
 })
 
 app.listen(port);
