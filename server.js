@@ -56,7 +56,7 @@ app.get('/authenticate', function (request, response) {
   collectionUsers.findOne({ username: username, password: password }, function (err, result) {
     if (err) throw err;
     if (result === null){
-      response.json({authorisation:'false', message:'Error:invalid credentials.'})
+      response.json({authorisation:'false', message:'Error: invalid credentials.'})
     }else{
       response.json({authorisation:'true', message:''})
     }
