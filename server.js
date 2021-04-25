@@ -14,7 +14,8 @@ const uri = "mongodb+srv://sit725:sit725@sit725.gwuvj.mongodb.net/spsf?retryWrit
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true});
 
 app.use(express.static(__dirname +'/public'));
-//use express boady parser to get view data
+
+//use express body parser to get view data
 app.use(express.urlencoded({ extended: true }));
 
 //db collections
