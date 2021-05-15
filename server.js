@@ -7,9 +7,12 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const passport = require('passport');
+const cookieParser = require('cookie-parser');
 
 //passport js
-require('./passport')(passport)
+require('./passport')(passport);
+
+//require('./passport')(passport)
 
 app = express();
 var port = process.env.PORT || 8080;   
@@ -61,6 +64,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+
 //authenticate users and pass to dashboard 
 // const isAuth = (req, res, next) => {
 //   if(req.session.isAuth) {
@@ -105,9 +109,14 @@ app.get('/register', async (request,response) => {
     }
 });
 
+// passport.authenticate('local', {
+//   successRedirect: '/displayDashboard',
+//   failureRedirect: '/',
+//   // failureFlash: true
+// })(request, response, next);
 
 //Authenticate user process
-app.get('/authenticate', passport.authenticate('local'), async (request, response) => {
+app.get('/authenticate', async (request, response) => {
   
   let username = request.query.username
   let password = request.query.password
@@ -127,7 +136,7 @@ app.get('/authenticate', passport.authenticate('local'), async (request, respons
   }
   else
   {
-      request.session.isAuth = true;
+      // request.session.isAuth = true;
       response.json({authorisation:'true', message:''}) 
 
   }
