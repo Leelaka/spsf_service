@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "SPSF-spsf_service",
   "main": "index.js",
-    "scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
@@ -25,6 +25,7 @@
     "materialize-css": "^1.0.0-rc.2",
     "mongodb": "^3.6.0",
     "nodemon": "^2.0.6",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "socket.io": "^4.0.2"
   }
 }
