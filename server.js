@@ -21,6 +21,8 @@ app.use(express.urlencoded({ extended: true }));
 //db collections
 client.connect(err => {
   collectionUsers = client.db("spsf").collection("user");
+  collectionHistory=client.db("spsf").collection("history");
+
 });
 
 //registration process
@@ -74,6 +76,19 @@ app.get('/requestAllParkingData',function (request,response){
         parkingData = result.body
         response.send(parkingData)
     });     
+})
+
+//Get history data by username
+app.get('/getUserHistoryData',function(request,response){
+
+  let username=request.query.username;
+  //let username='ruwan';
+  //console.log(request.query.username);
+  collectionHistory.find({username:username}).toArray(function(err,result){
+    if(err) throw err;
+    response.send(result);
+  });
+
 })
 
 
