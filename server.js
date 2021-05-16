@@ -78,6 +78,34 @@ app.get('/authenticate', async (request, response) => {
   
 });
 
+//change password 
+app.get('/Login', async (request,response) => {
+
+  console.log('password changed')
+try{
+  let oldpassword = request.query.oldpassword
+  let newpassword = request.query.newpassword
+  let confirmpassword = request.query.confirmpassword
+  
+  if(newpassword === confirmpassword){
+  oldpassword = await bcrypt.hash(oldpassword, saltRounds)
+  const verifypass = collectionUsers.findOne({password : oldpassword});
+  
+  if(!verifypass){
+    return response.json({message: "failed to verify"})
+  } else {
+    const updatepassword = await bcrypt.hash(newpassword, saltRounds);
+    await collectionUsers.findByIdAndUpdate({ username: username}, {password: updatepassword})
+  }
+  }
+} catch(error){
+  return response.json({message:"failed to change"})
+}
+
+
+
+})
+
 //Request all parking data from data analysis service
 app.get('/requestAllParkingData',function (request,response){
     reqObject = spsfDataanalysisUrl+"/generateParkingData";
