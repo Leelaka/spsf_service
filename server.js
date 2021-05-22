@@ -6,24 +6,22 @@ const MongoDBSession = require('connect-mongodb-session')(session)
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const passport = require('passport');
 const cookieParser = require('cookie-parser');
-
-//passport js
-require('./passport')(passport);
-
-//require('./passport')(passport)
+const passport = require('passport');
 
 app = express();
+
+require('./passport')(passport);
+
 var port = process.env.PORT || 8080;   
-var spsfUrl = 'https://spsfwebfront.mybluemix.net';
-var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
-//var spsfUrl = 'http://localhost:3000';
-//var spsfDataanalysisUrl = 'http://localhost:8081';
+//var spsfUrl = 'https://spsfwebfront.mybluemix.net';
+//var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
+var spsfUrl = 'http://localhost:3000';
+var spsfDataanalysisUrl = 'http://localhost:8081';
 var parkingData;
 
-const uri = "mongodb+srv://sit725:sit725@sit725.gwuvj.mongodb.net/spsf?retryWrites=true&w=majority";
-// const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true})
+//const uri = "mongodb+srv://sit725:sit725@sit725.gwuvj.mongodb.net/spsf?retryWrites=true&w=majority";
+const uri = "mongodb+srv://sit780:sit780@vaccinetracker.4wro0.mongodb.net/account?retryWrites=true&w=majority";
 
 const userModel = require("./models/userTest");
 
@@ -31,6 +29,7 @@ app.use(express.static(__dirname +'/public'));
 
 //use express body parser to get view data
 app.use(express.urlencoded({ extended: true }));
+
 
 //db collections
 try {
@@ -44,35 +43,15 @@ uri,
   console.log("could not connect...");
 }
 
-const store = new MongoDBSession({
-  uri: uri,
-  collection: 'userSessions',
-});
+app.use(session({
+  secret: 'secret',
+  resave: true,
+  saveUninitialized: true
+}));
 
-//express sesssion 
-
-app.use(
-  session({
-    secret: "key that will sign cookies",
-    resave: false,
-    saveUninitialized: false,
-    store: store,
-  })
-);
-
-//passport midware 
 app.use(passport.initialize());
 app.use(passport.session());
 
-
-//authenticate users and pass to dashboard 
-// const isAuth = (req, res, next) => {
-//   if(req.session.isAuth) {
-//     next()
-//   } else {
-//     res.loggedIn=false;
-//   }
-// }
 
 //registration process
 app.get('/register', async (request,response) => {
@@ -88,9 +67,9 @@ app.get('/register', async (request,response) => {
 
     if (password === confirmPassword) {
 
-      userModel.findOne({ email }, function (err, result) {
+      userModel.findOne({ email }, function (err, user) {
         if (err) throw err;
-        if (result === null) {
+        if (user === null) {
           const new_user_Model = new userModel
           ({ 
             username, 
@@ -98,58 +77,33 @@ app.get('/register', async (request,response) => {
             password: hashPassword
           });
           new_user_Model.save();
-          response.json({registration:'true', message:''})
-          console.log(new_user_Model)
+          response.json({registration:'true', message:''});
+          console.log(new_user_Model);
+          passport.authenticate("local")
         } else {
-          response.json({registration:'false', message:'Error: username is already exist.'}) 
+          response.json({registration:'false', message:'Error: username is already exist.'}); 
         }
       });  
     } else {
-      response.json({registration:'false', message:'Error: password mismatched.'})
+      response.json({registration:'false', message:'Error: password mismatched.'});
     }
 });
 
-// passport.authenticate('local', {
-//   successRedirect: '/displayDashboard',
-//   failureRedirect: '/',
-//   // failureFlash: true
-// })(request, response, next);
+app.get('/changepassword', async(req,res) => {
 
-//Authenticate user process
-app.get('/authenticate', async (request, response) => {
-  
-  let username = request.query.username
-  let password = request.query.password
+})
 
-  const user = await userModel.findOne({username : username});
-  
-  if(!username)
-  {
-      throw err;
-  }
-  
-  const comparePassword = await bcrypt.compare(password, user.password);
+//Authenticate login user process using passport
 
-
-  if (!comparePassword){
-      response.json({authorisation:'false', message:'Error: invalid credentials.'})
-  }
-  else
-  {
-      // request.session.isAuth = true;
-      response.json({authorisation:'true', message:''}) 
-
-  }
-  
-  // collectionUsers.findOne({ username: username, password: password }, function (err, result) {
-  //   if (err) throw err;
-  //   if (result === null){
-  //     response.json({authorisation:'false', message:'Error: invalid credentials.'})
-  //   }else{
-  //     response.json({authorisation:'true', message:''})
-  //   }
-  // })
-
+app.get('/authenticate', function(req, res, next) {
+  passport.authenticate('local', function(err, user, info) {
+    if (err) { return next(err); }
+    if (!user) { return res.json({authorisation:'false'}); }
+    req.logIn(user, function(err) {
+      if (err) { return next(err); }
+      return res.json({authorisation:'true'})
+    });
+  })(req, res, next);
 });
   
 //Request all parking data from data analysis service
@@ -165,12 +119,10 @@ app.get('/requestAllParkingData',function (request,response){
      response.send(parkingData)
 })
 
-app.get('/signoff', (req, res) => {
-  req.session.destroy((err) => {
-    if(err) throw err;
-    res.redirect('/');
-    //res.loggedIn=false;
-  });
+app.post('/logout', function(req, res){
+  req.logout();
+  res.loggedIn('false');
+  res.redirect('/');
 });
 
 

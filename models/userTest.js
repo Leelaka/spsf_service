@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const usertestSchema = new Schema({
+const User = new Schema({
     username: {
         type: String,
         required: true
@@ -14,6 +14,12 @@ const usertestSchema = new Schema({
         type: String,
         required: true
     },
+    // resetLink: {
+    //     data: String,
+    //     default: ''
+    // }
+
 });
 
-module.exports = mongoose.model('UserTest', usertestSchema);
+
+module.exports = mongoose.model('UserTest', User);
