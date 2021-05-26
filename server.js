@@ -1,19 +1,20 @@
-const MongoClient = require('mongodb').MongoClient;
-var express = require('express')
-const req = require('request');
-const session = require('express-session'); //session
-const MongoDBSession = require('connect-mongodb-session')(session)
+const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const cookieParser = require('cookie-parser');
 const passport = require('passport');
+const session = require('express-session');//session
+const cookieparser = require('cookie-parser');
+// const MongoDBSession = require('connect-mongodb-session')(session)
 
-app = express();
+const app = express();
 
-require('./passport')(passport);
+//passport local
+require('./auth')(passport);
 
-var port = process.env.PORT || 8080;   
+//passport google 
+//require('../spsf/googleauth');
+  
 //var spsfUrl = 'https://spsfwebfront.mybluemix.net';
 //var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
 var spsfUrl = 'http://localhost:3000';
@@ -24,6 +25,7 @@ var parkingData;
 const uri = "mongodb+srv://sit780:sit780@vaccinetracker.4wro0.mongodb.net/account?retryWrites=true&w=majority";
 
 const userModel = require("./models/userTest");
+const cookieParser = require('cookie-parser');
 
 app.use(express.static(__dirname +'/public'));
 
@@ -32,26 +34,33 @@ app.use(express.urlencoded({ extended: true }));
 
 
 //db collections
+
 try {
   // Connect to the MongoDB cluster
   mongoose.connect(
-uri,
-    { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true},
-    () => console.log(" Mongoose is connected...")
-  );
-} catch (e) {
+  uri,{ useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true},
+      () => console.log(" Mongoose is connected...")
+  ); } catch (e) {
   console.log("could not connect...");
 }
 
-app.use(session({
-  secret: 'secret',
-  resave: true,
-  saveUninitialized: true
-}));
+// const store = new MongoDBSession({
+//   uri: uri,
+//   collection: "sessions",
+// });
 
+
+//express session
+app.use(session({
+    secret: "key to cookie",
+    resave: true,
+    saveUninitialized: true,
+  })
+);
+
+// Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
-
 
 //registration process
 app.get('/register', async (request,response) => {
@@ -63,7 +72,7 @@ app.get('/register', async (request,response) => {
 
     const hashPassword = await bcrypt.hash(password, saltRounds);
 
-    // let userDetails = await userModel.findOne({email});
+    //let userDetails = await userModel.findOne({email});
 
     if (password === confirmPassword) {
 
@@ -91,6 +100,13 @@ app.get('/register', async (request,response) => {
 
 app.get('/changepassword', async(req,res) => {
 
+  let username = request.query.username
+  let email = request.query.email
+  let password = request.query.password
+  let confirmPassword = request.query.confirmpassword
+
+
+
 })
 
 //Authenticate login user process using passport
@@ -101,7 +117,7 @@ app.get('/authenticate', function(req, res, next) {
     if (!user) { return res.json({authorisation:'false'}); }
     req.logIn(user, function(err) {
       if (err) { return next(err); }
-      return res.json({authorisation:'true'})
+      return res.json({authorisation:'true'});
     });
   })(req, res, next);
 });
@@ -119,14 +135,36 @@ app.get('/requestAllParkingData',function (request,response){
      response.send(parkingData)
 })
 
-app.post('/logout', function(req, res){
-  req.logout();
-  res.loggedIn('false');
-  res.redirect('/');
+// app.get('/google', function(req, res){
+//   res.send(passport.authenticate('google', {scope: 'profile'}));
+// });
+
+app.get('/google/callback', function(req, res, next) {
+  passport.authenticate('google', function(err, user, info) {
+    if (err) { return next(err); }
+    if (!user) { return res.json({authed:'false'}); }
+    req.logIn(user, function(err) {
+      if (err) { return next(err); }
+      return res.json({authed:'true'});
+    });
+  })(req, res, next);
 });
 
 
-app.listen(port);
-console.log('Server listening on : '+port);
+
+app.post('/logout', function(req, res){
+  req.session.destroy((err) => {
+    if(err) throw err;
+    res.loggedIn('false');
+    res.redirect('/');
+  })
+  req.logout();
+});
+
+
+const port = process.env.PORT || 8080; 
+
+app.listen(port, console.log('Server listening on : '+port));
+
 
 
