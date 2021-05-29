@@ -4,16 +4,15 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const passport = require('passport');
 const session = require('express-session');//session
-const cookieparser = require('cookie-parser');
 // const MongoDBSession = require('connect-mongodb-session')(session)
 
 const app = express();
 
 //passport local
-require('./auth')(passport);
+require('./config/auth')(passport);
 
 //passport google 
-//require('../spsf/googleauth');
+require('./config/googleauth');
   
 //var spsfUrl = 'https://spsfwebfront.mybluemix.net';
 //var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
@@ -25,7 +24,6 @@ var parkingData;
 const uri = "mongodb+srv://sit780:sit780@vaccinetracker.4wro0.mongodb.net/account?retryWrites=true&w=majority";
 
 const userModel = require("./models/userTest");
-const cookieParser = require('cookie-parser');
 
 app.use(express.static(__dirname +'/public'));
 
@@ -55,6 +53,7 @@ app.use(session({
     secret: "key to cookie",
     resave: true,
     saveUninitialized: true,
+    // store: store
   })
 );
 
@@ -139,16 +138,16 @@ app.get('/requestAllParkingData',function (request,response){
 //   res.send(passport.authenticate('google', {scope: 'profile'}));
 // });
 
-app.get('/google/callback', function(req, res, next) {
-  passport.authenticate('google', function(err, user, info) {
-    if (err) { return next(err); }
-    if (!user) { return res.json({authed:'false'}); }
-    req.logIn(user, function(err) {
-      if (err) { return next(err); }
-      return res.json({authed:'true'});
-    });
-  })(req, res, next);
-});
+// app.get('/google/callback', function(req, res, next) {
+//   passport.authenticate('google', function(err, user, info) {
+//     if (err) { return next(err); }
+//     if (!user) { return res.json({authed:'false'}); }
+//     req.logIn(user, function(err) {
+//       if (err) { return next(err); }
+//       return res.json({authed:'true'});
+//     });
+//   })(req, res, next);
+// });
 
 
 
@@ -160,7 +159,6 @@ app.post('/logout', function(req, res){
   })
   req.logout();
 });
-
 
 const port = process.env.PORT || 8080; 
 
