@@ -134,6 +134,10 @@ app.get('/requestAllParkingData',function (request,response){
      response.send(parkingData)
 })
 
+app.get('/google', function(req, res){
+  res.send("<h1> hello </h1>");
+});
+
 // app.get('/google', function(req, res){
 //   res.send(passport.authenticate('google', {scope: 'profile'}));
 // });
@@ -148,8 +152,6 @@ app.get('/requestAllParkingData',function (request,response){
 //     });
 //   })(req, res, next);
 // });
-
-
 
 app.post('/logout', function(req, res){
   req.session.destroy((err) => {
