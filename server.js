@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const passport = require('passport');
 const session = require('express-session');//session
-// const MongoDBSession = require('connect-mongodb-session')(session)
+const MongoDBSession = require('connect-mongodb-session')(session)
 
 const app = express();
 
@@ -42,10 +42,10 @@ try {
   console.log("could not connect...");
 }
 
-// const store = new MongoDBSession({
-//   uri: uri,
-//   collection: "sessions",
-// });
+const store = new MongoDBSession({
+  uri: uri,
+  collection: "sessions",
+});
 
 
 //express session
@@ -53,7 +53,7 @@ app.use(session({
     secret: "key to cookie",
     resave: true,
     saveUninitialized: true,
-    // store: store
+    store: store
   })
 );
 
@@ -108,6 +108,11 @@ app.get('/changepassword', async(req,res) => {
 
 })
 
+function isLoggedIn(req, res, next) {
+   //req.isAuthenticated() ? next() : res.redirect('/login'); 
+    req.user ? next() : res.redirect('/login');
+}
+
 //Authenticate login user process using passport
 
 app.get('/authenticate', function(req, res, next) {
@@ -118,8 +123,8 @@ app.get('/authenticate', function(req, res, next) {
       if (err) { return next(err); }
       return res.json({authorisation:'true'});
     });
-  })(req, res, next);
-});
+  })(req, res, next); 
+}); 
   
 //Request all parking data from data analysis service
 app.get('/requestAllParkingData',function (request,response){
@@ -132,11 +137,11 @@ app.get('/requestAllParkingData',function (request,response){
               
     });
      response.send(parkingData)
-})
-
-app.get('/google', function(req, res){
-  res.send("<h1> hello </h1>");
 });
+
+// app.get('/google', function(req, res){
+//   res.send("<h1> hello </h1>");
+// });
 
 // app.get('/google', function(req, res){
 //   res.send(passport.authenticate('google', {scope: 'profile'}));
@@ -145,15 +150,16 @@ app.get('/google', function(req, res){
 // app.get('/google/callback', function(req, res, next) {
 //   passport.authenticate('google', function(err, user, info) {
 //     if (err) { return next(err); }
-//     if (!user) { return res.json({authed:'false'}); }
+//     if (!user) { return res.json({auth:'false'}); }
 //     req.logIn(user, function(err) {
 //       if (err) { return next(err); }
-//       return res.json({authed:'true'});
+//       return res.json({auth:'true'});
 //     });
 //   })(req, res, next);
 // });
 
 app.post('/logout', function(req, res){
+  req.session = null;
   req.session.destroy((err) => {
     if(err) throw err;
     res.loggedIn('false');
