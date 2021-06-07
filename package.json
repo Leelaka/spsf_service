@@ -18,14 +18,26 @@
   },
   "homepage": "https://github.com/ruwanganath/spsf_service#readme",
   "dependencies": {
+    "bcrypt": "^5.0.1",
+    "connect-mongodb-session": "^2.4.1",
+    "cookie-parser": "^1.4.5",
     "ejs": "^3.1.3",
     "express": "^4.17.1",
+    "express-flash": "0.0.2",
+    "express-session": "^1.17.2",
     "http-post": "^0.1.1",
     "http-proxy": "^1.18.1",
     "materialize-css": "^1.0.0-rc.2",
     "mongodb": "^3.6.0",
-    "nodemon": "^2.0.6",
+    "nodemon": "^2.0.7",
     "request": "^2.88.2",
-    "socket.io": "^4.0.2"
+    "socket.io": "^4.0.2",
+    "mongoose": "^5.12.9",
+    "mongoose-findorcreate": "^3.0.0",
+    "passport": "^0.4.1",
+    "passport-google-oauth2": "^0.2.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "passport-local-mongoose": "^6.1.0"
   }
 }
