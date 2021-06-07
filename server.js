@@ -5,14 +5,12 @@ const saltRounds = 10;
 const passport = require('passport');
 const session = require('express-session');//session
 const MongoDBSession = require('connect-mongodb-session')(session)
+const User = require('./models/userTest');
 
 const app = express();
 
 //passport local
 require('./config/auth')(passport);
-
-//passport google 
-require('./config/googleauth');
   
 //var spsfUrl = 'https://spsfwebfront.mybluemix.net';
 //var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
@@ -53,7 +51,7 @@ app.use(session({
     secret: "key to cookie",
     resave: true,
     saveUninitialized: true,
-    store: store
+   // store: store
   })
 );
 
@@ -97,22 +95,10 @@ app.get('/register', async (request,response) => {
     }
 });
 
-app.get('/changepassword', async(req,res) => {
-
-  let username = request.query.username
-  let email = request.query.email
-  let password = request.query.password
-  let confirmPassword = request.query.confirmpassword
-
-
-
-})
-
 function isLoggedIn(req, res, next) {
    //req.isAuthenticated() ? next() : res.redirect('/login'); 
     req.user ? next() : res.redirect('/login');
 }
-
 //Authenticate login user process using passport
 
 app.get('/authenticate', function(req, res, next) {
@@ -124,8 +110,52 @@ app.get('/authenticate', function(req, res, next) {
       return res.json({authorisation:'true'});
     });
   })(req, res, next); 
-}); 
-  
+});
+ 
+//compare password get boolean value and update password in database. 
+
+app.get('/changepassword', async(req,res) => {
+
+  let email = req.query.currentemail;
+  let oldpassword = req.query.oldpassword;
+  let newpassword = req.query.newpassword;
+  let confirmPassword = req.query.confirmpassword
+
+  const hashOldPassword = await bcrypt.hash(oldpassword, saltRounds);
+  const hashNewPassword = await bcrypt.hash(newpassword, saltRounds);
+  //let userDetails = await userModel.findOne({email});
+
+  if(newpassword === confirmPassword){
+    User.findOne({email: email})
+    .then(user => {
+      if(user) {
+        console.log('user exist!');
+        bcrypt.compare(oldpassword, user.password, (err, isMatch) => {
+          if(err) throw err;
+          if(isMatch){
+            User.findOneAndUpdate({email: email}, {password: hashNewPassword}, (err) =>{
+              if(err){
+                throw(err)
+              } else {
+                //res.send("alert('successfully changed!')");
+                console.log('successfully changed password');
+                return res.json({changed:'true'});
+              }
+            })
+          } else {
+            //res.send("alert('incorrect password or email')");
+            console.log('password incorrect');
+          }
+        })
+      }
+
+    }).catch(err => console.log('incorrect password or email'));
+  } else {
+    //res.send("alert('entered password does not match')");
+    console.log('password dont match');
+  }
+});
+
 //Request all parking data from data analysis service
 app.get('/requestAllParkingData',function (request,response){
     reqObject = spsfDataanalysisUrl+"/generateParkingData";
@@ -138,25 +168,6 @@ app.get('/requestAllParkingData',function (request,response){
     });
      response.send(parkingData)
 });
-
-// app.get('/google', function(req, res){
-//   res.send("<h1> hello </h1>");
-// });
-
-// app.get('/google', function(req, res){
-//   res.send(passport.authenticate('google', {scope: 'profile'}));
-// });
-
-// app.get('/google/callback', function(req, res, next) {
-//   passport.authenticate('google', function(err, user, info) {
-//     if (err) { return next(err); }
-//     if (!user) { return res.json({auth:'false'}); }
-//     req.logIn(user, function(err) {
-//       if (err) { return next(err); }
-//       return res.json({auth:'true'});
-//     });
-//   })(req, res, next);
-// });
 
 app.post('/logout', function(req, res){
   req.session = null;
