@@ -1,6 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
 //var express = require('express')
-//const req = require('request');
+const req = require('request');
 //app = express();
 const port = process.env.PORT || 8080;   
 var spsfUrl = 'https://spsfwebfront.mybluemix.net';
