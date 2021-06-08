@@ -1,8 +1,7 @@
 const MongoClient = require('mongodb').MongoClient;
 //var express = require('express')
 const req = require('request');
-//app = express();
-const port = process.env.PORT || 8080;   
+ 
 var spsfUrl = 'https://spsfwebfront.mybluemix.net';
 var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
 //var spsfUrl = 'http://localhost:3000';
@@ -21,6 +20,15 @@ const app = express();
 //passport local
 require('./config/auth')(passport);
   
+var moment = require("moment")
+
+app = express();
+require('dotenv').config({path: __dirname + '/.env'})
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;//ACcee13ca196223b861bbfe2919bfdd10d
+const authToken = process.env.TWILIO_AUTH_TOKEN;//933f291d7a25eedcaae64a23fbd169e7
+const Twilioclient = require('twilio')(accountSid, authToken);
+
 //var spsfUrl = 'https://spsfwebfront.mybluemix.net';
 //var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
 // var spsfUrl = 'http://localhost:3000';
@@ -30,20 +38,22 @@ var parkingData;
 const uri = "mongodb+srv://sit725:sit725@sit725.gwuvj.mongodb.net/spsf?retryWrites=true&w=majority";
 const mongooseuri = "mongodb+srv://sit780:sit780@vaccinetracker.4wro0.mongodb.net/account?retryWrites=true&w=majority";
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true});
+moment.suppressDeprecationWarnings = true;
 
 const userModel = require("./models/userTest");
 
 app.use(express.static(__dirname +'/public'));
-
 //use express body parser to get view data
 app.use(express.urlencoded({ extended: true }));
 
+var port = process.env.PORT || 8080;   
 
 //db collections
 client.connect(err => {
   collectionUsers = client.db("spsf").collection("user");
   collectionHistory=client.db("spsf").collection("history");
-
+  collectionNotification=client.db("spsf").collection("notification");
+  collectionSentNotification=client.db("spsf").collection("sentnotification");
 });
 
 try {
@@ -73,6 +83,43 @@ app.use(session({
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
+
+//send sms's as notifications
+sendSmsNotifications = function (){
+  collectionNotification.find().sort({time: 1 }).toArray(function(err, result) {
+    if(err) throw err;
+    let currentTime = moment().format('DD/MM/YYYY HH:mm')
+    result.forEach((element) => { 
+      if(currentTime >= element.time){
+        try {  
+            Twilioclient.messages 
+            .create({ 
+              body: 'Hello, This is SPSF service. Your parking has just expired at ' +element.time+'. Please proceed to the vehicle.',  
+              messagingServiceSid: 'MGabeffbb29ea545b088fe9df43117d6ee',   
+              from: '+12816231993',   
+              to: element.mobile 
+            }) 
+            .then(message => collectionSentNotification.insertOne({mobile:element.mobile,sid:message.sid,date:element.time,body:message.body,status:message.status})) 
+            .done();
+        } catch (e) {
+          console.log(e);
+        }
+
+        try {          
+          collectionNotification.deleteOne( { "_id" : element._id } );
+        } catch (e) {
+            console.log(e);
+        }
+      }        
+    })     
+  });
+}
+
+//sms sending and updating the Notification collection
+setInterval(()=>{
+  sendSmsNotifications()
+}, 20000);
+
 
 //registration process
 app.get('/register', async (request,response) => {
@@ -209,5 +256,27 @@ app.post('/logout', function(req, res){
 
 app.listen(port, console.log('Server listening on : '+port));
 
+
+//Notify feature handling
+app.get('/notify', function (request, response) {
+
+  let mobile = request.query.mobile
+  mobile = '+61'+mobile.slice(1)
+  let time = request.query.time
+  array = time.split(':')
+  hours = array[0].trim()
+  mins = array[1].trim()
+  var dateTime =  moment().format('DD/MM/YYYY HH:mm')
+
+  dateTime = moment(dateTime).add(parseInt(mins), 'minutes').format('DD/MM/YYYY HH:mm');
+  dateTime = moment(dateTime).add(parseInt(hours), 'hours').format('DD/MM/YYYY HH:mm');
+
+  if(request.query){
+     collectionNotification.insertOne({mobile:mobile, time:dateTime}, function (err, result) {
+      if (err) throw err;
+     })
+  }
+  response.end()
+})
 
 
