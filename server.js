@@ -118,7 +118,7 @@ sendSmsNotifications = function (){
 //sms sending and updating the Notification collection
 setInterval(()=>{
   sendSmsNotifications()
-}, 20000);
+}, 60000);
 
 
 //registration process
