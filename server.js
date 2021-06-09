@@ -22,11 +22,10 @@ require('./config/auth')(passport);
   
 var moment = require("moment")
 
-app = express();
 require('dotenv').config({path: __dirname + '/.env'})
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;//ACcee13ca196223b861bbfe2919bfdd10d
-const authToken = process.env.TWILIO_AUTH_TOKEN;//933f291d7a25eedcaae64a23fbd169e7
+const accountSid = "ACcee13ca196223b861bbfe2919bfdd10d"
+const authToken = "933f291d7a25eedcaae64a23fbd169e7";
 const Twilioclient = require('twilio')(accountSid, authToken);
 
 //var spsfUrl = 'https://spsfwebfront.mybluemix.net';
