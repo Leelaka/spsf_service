@@ -1,6 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
 //var express = require('express')
-//const req = require('request');
+const req = require('request');
 //app = express();
 const port = process.env.PORT || 8080;   
 var spsfUrl = 'https://spsfwebfront.mybluemix.net';
@@ -23,6 +23,7 @@ require('./config/auth')(passport);
   
 //var spsfUrl = 'https://spsfwebfront.mybluemix.net';
 //var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
+
 var spsfUrl = 'http://localhost:3000';
 var spsfDataanalysisUrl = 'http://localhost:8081';
 var parkingData;
