@@ -75,7 +75,7 @@ app.use(session({
     secret: "key to cookie",
     resave: true,
     saveUninitialized: true,
-   // store: store
+    store: store
   })
 );
 
