@@ -1,11 +1,11 @@
 const MongoClient = require('mongodb').MongoClient;
 //var express = require('express')
 const req = require('request');
+require('dotenv').config({path: __dirname + '/.env'})
  
-var spsfUrl = 'https://spsfwebfront.mybluemix.net';
-var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
-//var spsfUrl = 'http://localhost:3000';
-//var spsfDataanalysisUrl = 'http://localhost:8081';
+var spsfUrl = process.env.FRONT_END_URL
+var spsfDataanalysisUrl = process.env.DATA_SERVICE_URL
+
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
@@ -22,21 +22,15 @@ require('./config/auth')(passport);
   
 var moment = require("moment")
 
-app = express();
-require('dotenv').config({path: __dirname + '/.env'})
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;//ACcee13ca196223b861bbfe2919bfdd10d
-const authToken = process.env.TWILIO_AUTH_TOKEN;//933f291d7a25eedcaae64a23fbd169e7
 const Twilioclient = require('twilio')(accountSid, authToken);
 
-//var spsfUrl = 'https://spsfwebfront.mybluemix.net';
-//var spsfDataanalysisUrl = 'https://spsfdataanalysis.us-south.cf.appdomain.cloud';
-// var spsfUrl = 'http://localhost:3000';
-// var spsfDataanalysisUrl = 'http://localhost:8081';
 var parkingData;
 
-const uri = "mongodb+srv://sit725:sit725@sit725.gwuvj.mongodb.net/spsf?retryWrites=true&w=majority";
-const mongooseuri = "mongodb+srv://sit780:sit780@vaccinetracker.4wro0.mongodb.net/account?retryWrites=true&w=majority";
+const uri = process.env.MONGODB;
+const mongooseuri = process.env.MONGOOSE;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true});
 moment.suppressDeprecationWarnings = true;
 
@@ -76,7 +70,7 @@ app.use(session({
     secret: "key to cookie",
     resave: true,
     saveUninitialized: true,
-   // store: store
+    store: store
   })
 );
 
@@ -95,22 +89,22 @@ sendSmsNotifications = function (){
             Twilioclient.messages 
             .create({ 
               body: 'Hello, This is SPSF service. Your parking has just expired at ' +element.time+'. Please proceed to the vehicle.',  
-              messagingServiceSid: 'MGabeffbb29ea545b088fe9df43117d6ee',   
-              from: '+12816231993',   
+              messagingServiceSid:process.env.TWILIO_MSG_SERVICE_SID,   
+              from:process.env.TWILIO_SERVICE_NUM,   
               to: element.mobile 
             }) 
             .then(message => collectionSentNotification.insertOne({mobile:element.mobile,sid:message.sid,date:element.time,body:message.body,status:message.status})) 
-            .done();
+            .done(()=>{
+              try {          
+                collectionNotification.deleteOne( { "_id" : element._id } );
+              } catch (e) {
+                  console.log(e);
+              }
+            });
         } catch (e) {
           console.log(e);
         }
-
-        try {          
-          collectionNotification.deleteOne( { "_id" : element._id } );
-        } catch (e) {
-            console.log(e);
-        }
-      }        
+       }        
     })     
   });
 }
@@ -118,7 +112,7 @@ sendSmsNotifications = function (){
 //sms sending and updating the Notification collection
 setInterval(()=>{
   sendSmsNotifications()
-}, 60000);
+}, 40000);
 
 
 //registration process
@@ -161,8 +155,8 @@ function isLoggedIn(req, res, next) {
    //req.isAuthenticated() ? next() : res.redirect('/login'); 
     req.user ? next() : res.redirect('/login');
 }
-//Authenticate login user process using passport
 
+//Authenticate login user process using passport
 app.get('/authenticate', function(req, res, next) {
   passport.authenticate('local', function(err, user, info) {
     if (err) { return next(err); }
@@ -174,8 +168,8 @@ app.get('/authenticate', function(req, res, next) {
   })(req, res, next); 
 });
  
-//compare password get boolean value and update password in database. 
 
+//compare password get boolean value and update password in database. 
 app.get('/changepassword', async(req,res) => {
 
   let email = req.query.currentemail;
@@ -254,8 +248,6 @@ app.post('/logout', function(req, res){
   req.logout();
 });
 
-app.listen(port, console.log('Server listening on : '+port));
-
 
 //Notify feature handling
 app.get('/notify', function (request, response) {
@@ -280,3 +272,4 @@ app.get('/notify', function (request, response) {
 })
 
 
+app.listen(port, console.log('Server listening on : '+port));
