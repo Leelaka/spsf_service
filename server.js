@@ -11,6 +11,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const passport = require('passport');
+const jwt = require('jsonwebtoken');
 const session = require('express-session');//session
 const MongoDBSession = require('connect-mongodb-session')(session)
 const User = require('./models/userTest');
@@ -175,7 +176,7 @@ app.get('/changepassword', async(req,res) => {
   let email = req.query.currentemail;
   let oldpassword = req.query.oldpassword;
   let newpassword = req.query.newpassword;
-  let confirmPassword = req.query.confirmpassword
+  let confirmPassword = req.query.confirmpassword;
 
   const hashOldPassword = await bcrypt.hash(oldpassword, saltRounds);
   const hashNewPassword = await bcrypt.hash(newpassword, saltRounds);
@@ -213,6 +214,80 @@ app.get('/changepassword', async(req,res) => {
   }
 });
 
+const JWT_SECRET = 'its something secret';
+
+//forget password
+app.get('/sendpassword', function(request, response){
+  let email = request.query.email; 
+  let secretkey; 
+  let payload;
+  let token;
+  let link;
+
+  if(email !== null){
+    User.findOne({email: email})
+    .then(user => {
+      if(user){
+        console.log('user exists');
+        secretkey = JWT_SECRET + user.password;
+        payload = {
+          email: user.email,
+          id: user.id
+        }
+        token = jwt.sign(payload, secretkey, {expiresIn: '15m'});
+        link = `http://localhost:3000/reset-password/${user.id}/${token}`;
+        console.log(link);
+        console.log('Password reset link has been sent to your e-mail address...');
+        return response.json({reset:'true'});
+      } else {
+        console.log('no user found');
+      }
+    }).catch(err => console.log('invalid user, try again'));
+  } else {
+    console.log('invalid email');
+  }
+});
+
+// app.post('/rest-password/:id/:token', (req, res, next) => {
+//   const {id, token} = req.params;
+//   res.send(user);
+// })
+
+app.get('/reset-password', async(request, response, next) => {
+  let { id, token } = request.params;
+  let newpassword = request.query.password;
+  let confirmpassword = request.query.confirmpassword;
+  console.log('click'+newpassword+confirmpassword+id);
+  const hashedpassword = await bcrypt.hash(newpassword, saltRounds);
+
+  if(newpassword !== confirmpassword){
+    return false;
+  } else {
+    User.findById({_id: id})
+    .then(user => {
+      const secretkey = JWT_SECRET + user.password;
+      try{
+        const payload = jwt.verify(token, secretkey);
+        User.findOneAndUpdate({email: user.email}, {password: hashedpassword}, (err) =>{
+        if(err){
+          throw(err)
+        } else {
+          //res.send("alert('successfully changed!')");
+          console.log('successfully reset password');
+          return res.json({shift:'true'});
+        }
+      }) 
+      }catch(error){
+        console.log(error);
+      }
+    })
+  }
+
+
+
+});
+
+
 //Request all parking data from data analysis service
 app.get('/requestAllParkingData',function (request,response){
     reqObject = spsfDataanalysisUrl+"/generateParkingData";
@@ -224,6 +299,7 @@ app.get('/requestAllParkingData',function (request,response){
         response.send(parkingData)
     });     
 })
+
 
 //Get history data by username
 app.get('/getUserHistoryData',function(request,response){
