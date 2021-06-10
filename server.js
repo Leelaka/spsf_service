@@ -1,5 +1,4 @@
-const MongoClient = require('mongodb').MongoClient;
-//var express = require('express')
+const MongoClient = require('mongodb').MongoClient; //mongodb
 const req = require('request');
 require('dotenv').config({path: __dirname + '/.env'})
  
@@ -8,20 +7,22 @@ var spsfDataanalysisUrl = process.env.DATA_SERVICE_URL
 
 const express = require('express');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt'); //encryption 
+const saltRounds = 10; //rounds of hashing 
+const passport = require('passport'); //passport 
 const session = require('express-session');//session
 const MongoDBSession = require('connect-mongodb-session')(session)
-const User = require('./models/userTest');
-
+const User = require('./models/userTest'); //mongoose model 
+const nodemailer = require('nodemailer'); //email module 
 const app = express();
 
 //passport local
 require('./config/auth')(passport);
+
+//random password generator 
+const createPassword = require('./config/randomPassword');
   
-var moment = require("moment")
+var moment = require("moment");
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -124,15 +125,15 @@ app.get('/register', async (request,response) => {
     let password = request.query.password
     let confirmPassword = request.query.confirmpassword
 
-    const hashPassword = await bcrypt.hash(password, saltRounds);
+    const hashPassword = await bcrypt.hash(password, saltRounds); //hash user password 
 
     //let userDetails = await userModel.findOne({email});
 
-    if (password === confirmPassword) {
+    if (password === confirmPassword) { //verify pass 
 
-      userModel.findOne({ email }, function (err, user) {
+      userModel.findOne({ email }, function (err, user) { //find user 
         if (err) throw err;
-        if (user === null) {
+        if (user === null) { //if non add user 
           const new_user_Model = new userModel
           ({ 
             username, 
@@ -143,7 +144,7 @@ app.get('/register', async (request,response) => {
           response.json({registration:'true', message:''});
           console.log(new_user_Model);
           passport.authenticate("local")
-        } else {
+        } else { //reject user if exist 
           response.json({registration:'false', message:'Error: username is already exist.'}); 
         }
       });  
@@ -177,26 +178,26 @@ app.get('/changepassword', async(req,res) => {
   let oldpassword = req.query.oldpassword;
   let newpassword = req.query.newpassword;
   let confirmPassword = req.query.confirmpassword;
-
+  //hash both passwords 
   const hashOldPassword = await bcrypt.hash(oldpassword, saltRounds);
   const hashNewPassword = await bcrypt.hash(newpassword, saltRounds);
   //let userDetails = await userModel.findOne({email});
 
-  if(newpassword === confirmPassword){
-    User.findOne({email: email})
+  if(newpassword === confirmPassword){ //verify password 
+    User.findOne({email: email}) //verify user in db 
     .then(user => {
       if(user) {
         console.log('user exist!');
         bcrypt.compare(oldpassword, user.password, (err, isMatch) => {
           if(err) throw err;
           if(isMatch){
-            User.findOneAndUpdate({email: email}, {password: hashNewPassword}, (err) =>{
+            User.findOneAndUpdate({email: email}, {password: hashNewPassword}, (err) =>{ //update pass 
               if(err){
                 throw(err)
               } else {
                 //res.send("alert('successfully changed!')");
                 console.log('successfully changed password');
-                return res.json({changed:'true'});
+                return res.json({changed:'true'}); //render page 
               }
             })
           } else {
@@ -214,31 +215,77 @@ app.get('/changepassword', async(req,res) => {
   }
 });
 
-const JWT_SECRET = 'its something secret';
+//password generator for new password 
+function generatePassword(passwordLength) {
+  var numberChars = "0123456789";
+  var upperChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  var lowerChars = "abcdefghijklmnopqrstuvwxyz";
+  var allChars = numberChars + upperChars + lowerChars;
+  var randPasswordArray = Array(passwordLength);
+  randPasswordArray[0] = numberChars;
+  randPasswordArray[1] = upperChars;
+  randPasswordArray[2] = lowerChars;
+  randPasswordArray = randPasswordArray.fill(allChars, 3);
+  return shuffleArray(randPasswordArray.map(function(x) { return x[Math.floor(Math.random() * x.length)] })).join('');
+}
+
+function shuffleArray(array) {
+  for (var i = array.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+  }
+  return array;
+}
 
 //forget password
-app.get('/sendpassword', function(request, response){
+app.get('/sendpassword', async(request, response) => {
   let email = request.query.email; 
-  let secretkey; 
-  let payload;
-  let token;
-  let link;
+  let length = 6;
+  let passwordGenerated = generatePassword(length); //generate a random 6 character password 
+ 
+  const currentResetPassword = await bcrypt.hash(passwordGenerated, saltRounds); //hashing the new generated password 
 
   if(email !== null){
-    User.findOne({email: email})
+  User.findOne({email: email}) //verifying user 
     .then(user => {
       if(user){
         console.log('user exists');
-        secretkey = JWT_SECRET + user.password;
-        payload = {
-          email: user.email,
-          id: user.id
-        }
-        token = jwt.sign(payload, secretkey, {expiresIn: '15m'});
-        link = `http://localhost:3000/reset-password/${user.id}/${token}`;
-        console.log(link);
-        console.log('Password reset link has been sent to your e-mail address...');
-        return response.json({reset:'true'});
+        console.log('One time password has been sent to your e-mail address...');
+        console.log(passwordGenerated);
+        var transporter = nodemailer.createTransport({ //connecting to mail 
+            service: 'hotmail',
+            auth: {
+                    // user: 'spsfhelpdesk@gmail.com',
+                    // pass: 'spsf1234'
+                    user: 'spsfhelpdesk@outlook.com',
+                    pass: 'spsf1234'
+                }
+        });
+        const mailOptions = { //mail body and to whom to sent 
+          from: 'spsfhelpdesk@outlook.com', // sender address
+          to: user.email, // list of receivers
+          subject: `Hi ${user.username}, here's your temporary password! `, // Subject line
+          html: `<p>Please use this <b>${passwordGenerated}</b> as your temporary password to login</p>`// plain text body
+        };
+        transporter.sendMail(mailOptions, function (err, info) { //sent function mail, get verification, check SPAM if not received! 
+          if(err)
+           { 
+             console.log(err);
+           }
+          else{
+            User.findOneAndUpdate({email: email}, {password: currentResetPassword}, (err) => { //find user and update password 
+              if(err){
+                throw (err);
+              } else {
+                return console.log('success reset pass!');
+              }
+            })
+            console.log(info);
+          }
+        });
+        return response.json({reset:'false'});
       } else {
         console.log('no user found');
       }
@@ -248,44 +295,6 @@ app.get('/sendpassword', function(request, response){
   }
 });
 
-// app.post('/rest-password/:id/:token', (req, res, next) => {
-//   const {id, token} = req.params;
-//   res.send(user);
-// })
-
-app.get('/reset-password', async(request, response, next) => {
-  let { id, token } = request.params;
-  let newpassword = request.query.password;
-  let confirmpassword = request.query.confirmpassword;
-  console.log('click'+newpassword+confirmpassword+id);
-  const hashedpassword = await bcrypt.hash(newpassword, saltRounds);
-
-  if(newpassword !== confirmpassword){
-    return false;
-  } else {
-    User.findById({_id: id})
-    .then(user => {
-      const secretkey = JWT_SECRET + user.password;
-      try{
-        const payload = jwt.verify(token, secretkey);
-        User.findOneAndUpdate({email: user.email}, {password: hashedpassword}, (err) =>{
-        if(err){
-          throw(err)
-        } else {
-          //res.send("alert('successfully changed!')");
-          console.log('successfully reset password');
-          return res.json({shift:'true'});
-        }
-      }) 
-      }catch(error){
-        console.log(error);
-      }
-    })
-  }
-
-
-
-});
 
 
 //Request all parking data from data analysis service
@@ -315,13 +324,13 @@ app.get('/getUserHistoryData',function(request,response){
 })
               
 app.post('/logout', function(req, res){
-  req.session = null;
-  req.session.destroy((err) => {
+  req.session = null; //rset session 
+  req.session.destroy((err) => {  //destroy session, redirect to login
     if(err) throw err;
     res.loggedIn('false');
     res.redirect('/');
   })
-  req.logout();
+  req.logout(); //passport func
 });
 
 
