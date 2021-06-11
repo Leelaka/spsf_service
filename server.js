@@ -203,7 +203,7 @@ app.get('/changepassword', async(req,res) => {
           } else {
             //res.send("alert('incorrect password or email')");
             console.log('password incorrect');
-            //return res.json({mismatch:'true'});
+            return res.json({mismatch:'true'});
           }
         })
       }
@@ -211,7 +211,7 @@ app.get('/changepassword', async(req,res) => {
     }).catch(err => console.log('incorrect password or email'));
   } else {
     //res.send("alert('entered password does not match')");
-    console.log('password dont match');
+    return res.json({mismatch:'true'});
   }
 });
 
