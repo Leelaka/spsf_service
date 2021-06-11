@@ -78,6 +78,30 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+//send sms's as a confirmation
+sendSmsConfirmation = function (mobile, checked){
+
+  let currentTime = moment().format('DD/MM/YYYY HH:mm')
+  let smsbody = 'Hello, This is SPSF service. Your parking expiry notification has been set up. Thank you for using SPSF.'
+  if(checked ==='on'){
+    smsbody = 'Hello, This is SPSF service. Your parking info has saved and expiry notification has been set up. Thank you for using SPSF.'
+  }
+
+  try {  
+      Twilioclient.messages 
+      .create({ 
+        body: smsbody,  
+        messagingServiceSid:process.env.TWILIO_MSG_SERVICE_SID,   
+        from:process.env.TWILIO_SERVICE_NUM,   
+        to: mobile 
+      }) 
+      .then(message => collectionSentNotification.insertOne({mobile:mobile,sid:message.sid,date:currentTime,body:message.body,status:message.status})) 
+
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 //send sms's as notifications
 sendSmsNotifications = function (){
   collectionNotification.find().sort({time: 1 }).toArray(function(err, result) {
@@ -140,7 +164,6 @@ app.get('/register', async (request,response) => {
           });
           new_user_Model.save();
           response.json({registration:'true', message:''});
-          console.log(new_user_Model);
           passport.authenticate("local")
         } else {
           response.json({registration:'false', message:'Error: username is already exist.'}); 
@@ -229,8 +252,6 @@ app.get('/requestAllParkingData',function (request,response){
 app.get('/getUserHistoryData',function(request,response){
 
   let username=request.query.username;
-  //let username='ruwan';
-  //console.log(request.query.username);
   collectionHistory.find({username:username}).toArray(function(err,result){
     if(err) throw err;
     response.send(result);
@@ -252,16 +273,33 @@ app.post('/logout', function(req, res){
 //Notify feature handling
 app.get('/notify', function (request, response) {
 
+  let username = request.query.username
+  let bay = request.query.bay
+  let lat = request.query.lat
+  let lon = request.query.lon
+ 
   let mobile = request.query.mobile
   mobile = '+61'+mobile.slice(1)
   let time = request.query.time
   array = time.split(':')
   hours = array[0].trim()
   mins = array[1].trim()
-  var dateTime =  moment().format('DD/MM/YYYY HH:mm')
-
+  let dateTime =  moment().format('DD/MM/YYYY HH:mm')
+  let curTime = dateTime
+ 
   dateTime = moment(dateTime).add(parseInt(mins), 'minutes').format('DD/MM/YYYY HH:mm');
   dateTime = moment(dateTime).add(parseInt(hours), 'hours').format('DD/MM/YYYY HH:mm');
+  
+  let duration =  moment(dateTime).diff(moment(curTime), 'minutes')
+
+  //send confirmation
+  sendSmsConfirmation(mobile,request.query.save)
+  //saving paring info to history
+  if(request.query.save==='on'){
+    collectionHistory.insertOne({username:username , bay_id:bay , lat:lat , lon:lon, duration:duration , datetime:dateTime}, function (err, result) {
+      if (err) throw err;
+     })
+  }
 
   if(request.query){
      collectionNotification.insertOne({mobile:mobile, time:dateTime}, function (err, result) {
